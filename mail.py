@@ -127,11 +127,11 @@ class MainUI(QWidget):
         else:
             template = os.path.dirname(os.path.realpath(__file__)) + '/data/kor.json'
         val = {
-            'name': invi.name
-            'sender': invi.sender
-            'field': invi.get_field
-            'date': invi.date
-            'one_sen': invi.one_sen
+            'name': invi.name,
+            'sender': invi.sender,
+            'field': invi.get_field,
+            'date': invi.date,
+            'one_sen': invi.one_sen,
         }
 
 
