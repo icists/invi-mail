@@ -10,6 +10,10 @@ from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 
+from parser import * 
+
+DEBUG = True
+
 class Invitation():
     # Initialzie invitation structure form a excel row
     def __init__(self, row):
@@ -39,19 +43,20 @@ class MainUI(QWidget):
 
         # MainUI Data Structures
         self.creds = None
+        self.service = None
         self.invitations = []
 
         # Grid UI Structure
         grid = QGridLayout()
         self.setLayout(grid)
 
-        login_btn = QPushButton('Login', self)
-        login_btn.resize(login_btn.sizeHint())
-        login_btn.released.connect(self.login_gmail)
-        grid.addWidget(login_btn, 0, 0)
+        self.login_btn = QPushButton('Login', self)
+        self.login_btn.resize(self.login_btn.sizeHint())
+        self.login_btn.released.connect(self.login_gmail)
+        grid.addWidget(self.login_btn, 0, 0)
 
-        login_label = QLabel('Login to Gmail Server', self)
-        grid.addWidget(login_label, 0, 1)
+        self.login_label = QLabel('Login to Gmail Server', self)
+        grid.addWidget(self.login_label, 0, 1)
 
         upload_btn = QPushButton('Upload', self)
         upload_btn.resize(upload_btn.sizeHint())
@@ -71,7 +76,7 @@ class MainUI(QWidget):
 
         send_btn = QPushButton('Send', self)
         send_btn.resize(send_btn.sizeHint())
-        send_btn.released.connect(self.send_mails)
+        send_btn.released.connect(self.ask_send)
         grid.addWidget(send_btn, 3, 0)
 
         send_label = QLabel('Send invitation mails', self)
@@ -96,6 +101,10 @@ class MainUI(QWidget):
             with open('token.pickle', 'wb') as token:
                 pickle.dump(self.creds, token)
 
+        self.login_label.setText('Logged in to Gmail')
+        self.service = build('gmail', 'v1', credentials=self.creds)
+        print("[*] Logged in to Gmail")
+
     def file_upload(self):
         filename = QFileDialog.getOpenFileName(self, 'Open file', './')
 
@@ -104,22 +113,56 @@ class MainUI(QWidget):
                 return
             contact_excel = openpyxl.load_workbook(filename=filename[0])
             contact_sheet = contact_excel['Sheet1']
+            self.parse_excel_sheet(contact_sheet)
 
-    def parse_excel_sheet(sheet, header=True):
+    # Need Improvement
+    def parse_excel_sheet(self, sheet, header=True):
         self.inviations = []
+
+        ignore_threshold = 3
         for i, row in enumerate(sheet.iter_rows()):
             if header == True:
                 if i == 0:
                     continue
-            self.invitations.append(Inviation(row))
+            # Too many nones... ignore them!
+            is_valid_row = True
+            none_cnt = 0
+            for cell in row:
+                if cell.value == None:
+                    none_cnt += 1
+                    is_valid_row = False
+                    break
+                else:
+                    none_cnt = 0
+                    break
+            if none_cnt > ignore_threshold:
+                break
+            if is_valid_row:
+                 self.invitations.append(Invitation(row))
+            if none_cnt >= ignore_threshold:
+                for _ in range(ignore_threshold):
+                    self.invitations.pop()
 
     def is_valid_xlsx(self, filename):
         if not filename.endswith('.xlsx'):
+            print("[!] Invalid File Extension")
             return False
+        print("[*] Valid File Extension")
         return True
 
     def list_mails(self):
+        for invi in self.invitations:
+            print(invi)
         return
+
+    def ask_send(self):
+        ask = QMessageBox.question(self, 'Message', "Are you sure to send mails?",
+                QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        if DEBUG:
+            print("[*] DEBUG mode is on")
+        if ask == QMessageBox.Yes:
+            for invi in self.invitations:
+                send_mails(invi, self.service)
 
     def send_mails(self, invi, service, user_id='me'):
         if invi.is_eng():
@@ -134,8 +177,26 @@ class MainUI(QWidget):
             'one_sen': invi.one_sen,
         }
 
+        parser = ContentParser(template = template, values = val)
+        subject = parser.get_title()
+        print("To: {:30}\nTitle: {:40}\n".format(str(invi), parser.get_content()))
+        # build msg
+        msg_txt = parser.get_content()
+        message = MIMEText(msg_txt, _charset = 'utf-8')
+        message['subject'] = subject
+        message['from'] = user_id
+        message['to'] = invi.mail
+
+        # send message
+        if not DEBUG:
+            print("[!] DEBUG Mode, mails are not sent!")
+            message = (service.users().messages().send(userId=user_id, body=message).execute())
 
         return
+
+class CheckMail(QWidget):
+    pass
+
 class MainApp(QMainWindow):
 
     def __init__(self):
