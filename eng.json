@@ -1,0 +1,16 @@
+{
+    "title" : "[{field}] {name} Speech Invitation",
+    "template" : [
+        "Dear {name},",
+        "This is {sender} and I organize a conference about {field} at KAIST. The conference’s goal is to discuss how science and technology influence society and cooperate with various fields.",
+        "",
+        "I am in the process of lining up speakers for our annual conference. I would like to invite you to come and share your research and experience about {field} with us. {one_sen} ", 
+        "",
+        "The conference takes place on July 29 - August 2, 2019, at KAIST. I’m actively seeking speakers for {date}.",
+        "",
+        "In case you’re curious, here is the program from the last conference:",
+        "http://www.icists.org/program-2",
+        "",
+        "Let me know what you think!"
+    ]
+}
