@@ -94,7 +94,7 @@ class MainUI(QWidget):
             if self.creds and self.creds.expired and self.creds.refresh_token:
                 self.creds.refresh(Request())
             else:
-                credential = os.path.dirname(os.path.realpath(__file__)) + '/credentials.json'
+                credential = os.path.dirname(os.path.realpath(__file__)) + '/data/credentials.json'
                 flow = InstalledAppFlow.from_client_secrets_file(
                         credential, SCOPES)
                 self.creds = flow.run_local_server(port=8000)
@@ -162,7 +162,7 @@ class MainUI(QWidget):
             print("[*] DEBUG mode is on")
         if ask == QMessageBox.Yes:
             for invi in self.invitations:
-                send_mails(invi, self.service)
+                self.send_mails(invi, self.service)
 
     def send_mails(self, invi, service, user_id='me'):
         if invi.is_eng():
@@ -172,7 +172,7 @@ class MainUI(QWidget):
         val = {
             'name': invi.name,
             'sender': invi.sender,
-            'field': invi.get_field,
+            'field': invi.field,
             'date': invi.date,
             'one_sen': invi.one_sen,
         }
@@ -189,9 +189,9 @@ class MainUI(QWidget):
 
         # send message
         if not DEBUG:
+            message = (self.service.users().messages().send(userId=user_id, body=message).execute())
+        else:
             print("[!] DEBUG Mode, mails are not sent!")
-            message = (service.users().messages().send(userId=user_id, body=message).execute())
-
         return
 
 class CheckMail(QWidget):
