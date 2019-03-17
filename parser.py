@@ -35,7 +35,7 @@ class ContentParser():
 
         if self._is_valid_template():
             self._put_values()
-    
+
     def get_title(self):
 
         _vars = self._values.keys()
@@ -43,7 +43,6 @@ class ContentParser():
         for _tk in _vars:
             tk = '{' + _tk + '}'
             result = result.replace(tk, self._values[_tk])
-        
         return result
 
     def get_content(self):

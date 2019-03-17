@@ -95,8 +95,14 @@ class MainUI(QWidget):
                 self.creds.refresh(Request())
             else:
                 credential = os.path.dirname(os.path.realpath(__file__)) + '/data/credentials.json'
-                flow = InstalledAppFlow.from_client_secrets_file(
-                        credential, SCOPES)
+                try:
+                    flow = InstalledAppFlow.from_client_secrets_file(
+                            credential, SCOPES)
+                except FileNotFoundError as err:
+                    err_msg = QErrorMessage()
+                    err_msg.showMessage("Please put your credentials.json file to 'data' folder")
+                    self.login_label.setText('Failed to log in to Gmail')
+                    print("[!] Credentials Not Found at /data")
                 self.creds = flow.run_local_server(port=8000)
             with open('token.pickle', 'wb') as token:
                 pickle.dump(self.creds, token)
@@ -179,7 +185,7 @@ class MainUI(QWidget):
 
         parser = ContentParser(template = template, values = val)
         subject = parser.get_title()
-        print("To: {:30}\nTitle: {:40}\n".format(str(invi), parser.get_content()))
+        print("To: {:30}\nTitle: {:40}\n".format(str(invi), parser.get_title()))
         # build msg
         msg_txt = parser.get_content()
         message = MIMEText(msg_txt, _charset = 'utf-8')
