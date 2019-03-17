@@ -99,8 +99,8 @@ class MainUI(QWidget):
                     flow = InstalledAppFlow.from_client_secrets_file(
                             credential, SCOPES)
                 except FileNotFoundError as err:
-                    err_msg = QErrorMessage()
-                    err_msg.showMessage("Please put your credentials.json file to 'data' folder")
+                    err_box = QMessageBox.question(self, 'Error', "credentials.json not found",
+                            QMessageBox.Yes, QMessageBox.Yes)
                     self.login_label.setText('Failed to log in to Gmail')
                     print("[!] Credentials Not Found at /data")
                     return
