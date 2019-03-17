@@ -103,6 +103,7 @@ class MainUI(QWidget):
                     err_msg.showMessage("Please put your credentials.json file to 'data' folder")
                     self.login_label.setText('Failed to log in to Gmail')
                     print("[!] Credentials Not Found at /data")
+                    return
                 self.creds = flow.run_local_server(port=8000)
             with open('token.pickle', 'wb') as token:
                 pickle.dump(self.creds, token)
