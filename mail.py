@@ -46,6 +46,7 @@ class MainUI(QWidget):
         self.service = None
         self.user_profile = None
         self.user_email = ""
+        self.is_logged_in = False
 
         # Mail Data Structures
         self.invitations = []
@@ -57,7 +58,10 @@ class MainUI(QWidget):
 
         self.login_btn = QPushButton('Login', self)
         self.login_btn.resize(self.login_btn.sizeHint())
-        self.login_btn.released.connect(self.login_gmail)
+        if not self.is_logged_in:
+            self.login_btn.released.connect(self.login_gmail)
+        else:
+            self.login_btn.released.connect(self.reset_gmail)
         grid.addWidget(self.login_btn, 0, 0)
 
         self.login_label = QLabel('Login to Gmail Server', self)
@@ -91,6 +95,16 @@ class MainUI(QWidget):
         grid.addWidget(send_label, 3, 1)
 
     def login_gmail(self):
+        def reset_gmail():
+            os.remove('token.pickle')
+            self.login_btn.setText('Login')
+            self.login_label.setText('Login to Gmail Server')
+            self.is_logged_in = False
+
+        if self.is_logged_in:
+            reset_gmail()
+            return
+
         SCOPES = [
             'https://www.googleapis.com/auth/gmail.send',
             'https://www.googleapis.com/auth/gmail.metadata',
@@ -124,7 +138,10 @@ class MainUI(QWidget):
         self.user_email = self.user_file['emailAddress']
 
         self.login_label.setText(self.user_email)
+        self.login_btn.setText("Reset")
+        self.is_logged_in = True
         print("[*] Logged in to Gmail: {}".format(self.user_email))
+    
 
     def file_upload(self):
         filename = QFileDialog.getOpenFileName(self, 'Open file', './')
