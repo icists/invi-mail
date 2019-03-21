@@ -35,6 +35,9 @@ class Invitation():
 
     def __str__(self):
         return "{:30} {}".format(self.name, self.mail)
+    
+    def get_summary(self):
+        return self.name, self.mail
 
 
 class MainUI(QWidget):
@@ -51,10 +54,16 @@ class MainUI(QWidget):
         # Mail Data Structures
         self.invitations = []
         self.mails = QStandardItemModel()
+        self.mails.setHorizontalHeaderItem(0, QStandardItem('Name'))
+        self.mails.setHorizontalHeaderItem(1, QStandardItem('Email Address'))
+        
+        # Box UI Structrue For Mail List
+        box = QHBoxLayout()
+        self.setLayout(box)
 
-        # Grid UI Structure
+        # Grid UI Structure For Buttons and Labels
         grid = QGridLayout()
-        self.setLayout(grid)
+        box.addLayout(grid)
 
         self.login_btn = QPushButton('Login', self)
         self.login_btn.resize(self.login_btn.sizeHint())
@@ -83,8 +92,8 @@ class MainUI(QWidget):
         check_label = QLabel('Check if the mails are formed well', self)
         grid.addWidget(check_label, 2, 1)
 
-        self.check_list = QListView(self)
-        grid.addWidget(self.check_list, 0, 2)
+        self.check_list = QTableView(self)
+        box.addWidget(self.check_list)
 
         send_btn = QPushButton('Send', self)
         send_btn.resize(send_btn.sizeHint())
@@ -101,6 +110,7 @@ class MainUI(QWidget):
             self.login_label.setText('Login to Gmail Server')
             self.is_logged_in = False
 
+        # Log Out
         if self.is_logged_in:
             reset_gmail()
             return
@@ -182,8 +192,6 @@ class MainUI(QWidget):
                 for _ in range(ignore_threshold):
                     self.invitations.pop()
         
-        for invi in self.invitations:
-           self.mails.appendRow(QStandardItem(str(invi)))
 
     def is_valid_xlsx(self, filename):
         if not filename.endswith('.xlsx'):
@@ -195,6 +203,8 @@ class MainUI(QWidget):
     def list_mails(self):
         for invi in self.invitations:
             print(invi)
+            invi_item = QStandardItem(invi.name), QStandardItem(invi.mail)
+            self.mails.appendRow(invi_item)
         self.check_list.setModel(self.mails)
 
     def ask_send(self):
