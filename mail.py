@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import *
-from PyQt5.QtGui import QFont, QIcon
-from PyQt5.QtCore import QCoreApplication
+from PyQt5.QtGui import *
+from PyQt5.QtCore import *
 from email.mime.text import MIMEText
 import openpyxl
 import sys, os
@@ -34,7 +34,7 @@ class Invitation():
         return self.lang == '영'
 
     def __str__(self):
-        return "{}, {}".format(self.name, self.mail)
+        return "{:30} {}".format(self.name, self.mail)
 
 
 class MainUI(QWidget):
@@ -44,7 +44,12 @@ class MainUI(QWidget):
         # MainUI Data Structures
         self.creds = None
         self.service = None
+        self.user_profile = None
+        self.user_email = ""
+
+        # Mail Data Structures
         self.invitations = []
+        self.mails = QStandardItemModel()
 
         # Grid UI Structure
         grid = QGridLayout()
@@ -74,6 +79,9 @@ class MainUI(QWidget):
         check_label = QLabel('Check if the mails are formed well', self)
         grid.addWidget(check_label, 2, 1)
 
+        self.check_list = QListView(self)
+        grid.addWidget(self.check_list, 0, 2)
+
         send_btn = QPushButton('Send', self)
         send_btn.resize(send_btn.sizeHint())
         send_btn.released.connect(self.ask_send)
@@ -83,7 +91,10 @@ class MainUI(QWidget):
         grid.addWidget(send_label, 3, 1)
 
     def login_gmail(self):
-        SCOPES = ['https://www.googleapis.com/auth/gmail.send']
+        SCOPES = [
+            'https://www.googleapis.com/auth/gmail.send',
+            'https://www.googleapis.com/auth/gmail.metadata',
+        ]
         self.creds = None
 
         if os.path.exists('token.pickle'):
@@ -108,9 +119,12 @@ class MainUI(QWidget):
             with open('token.pickle', 'wb') as token:
                 pickle.dump(self.creds, token)
 
-        self.login_label.setText('Logged in to Gmail')
         self.service = build('gmail', 'v1', credentials=self.creds)
-        print("[*] Logged in to Gmail")
+        self.user_file = self.service.users().getProfile(userId='me').execute()
+        self.user_email = self.user_file['emailAddress']
+
+        self.login_label.setText(self.user_email)
+        print("[*] Logged in to Gmail: {}".format(self.user_email))
 
     def file_upload(self):
         filename = QFileDialog.getOpenFileName(self, 'Open file', './')
@@ -121,6 +135,7 @@ class MainUI(QWidget):
             contact_excel = openpyxl.load_workbook(filename=filename[0])
             contact_sheet = contact_excel['Sheet1']
             self.parse_excel_sheet(contact_sheet)
+            print("[*] File Uploaded")
 
     # Need Improvement
     def parse_excel_sheet(self, sheet, header=True):
@@ -149,6 +164,9 @@ class MainUI(QWidget):
             if none_cnt >= ignore_threshold:
                 for _ in range(ignore_threshold):
                     self.invitations.pop()
+        
+        for invi in self.invitations:
+           self.mails.appendRow(QStandardItem(str(invi)))
 
     def is_valid_xlsx(self, filename):
         if not filename.endswith('.xlsx'):
@@ -160,7 +178,7 @@ class MainUI(QWidget):
     def list_mails(self):
         for invi in self.invitations:
             print(invi)
-        return
+        self.check_list.setModel(self.mails)
 
     def ask_send(self):
         ask = QMessageBox.question(self, 'Message', "Are you sure to send mails?",
@@ -199,10 +217,6 @@ class MainUI(QWidget):
             message = (self.service.users().messages().send(userId=user_id, body=message).execute())
         else:
             print("[!] DEBUG Mode, mails are not sent!")
-        return
-
-class CheckMail(QWidget):
-    pass
 
 class MainApp(QMainWindow):
 
@@ -224,20 +238,8 @@ class MainApp(QMainWindow):
         # StatusBar Configration
         self.statusBar().showMessage('Status')
 
-        # Action Configuration
-        exit_icon = 'exit.png'
-        exitAction = QAction(QIcon(exit_icon), 'Exit', self)
-        exitAction.setShortcut('Ctrl+Q')
-        exitAction.setStatusTip('Exit Application')
-        exitAction.triggered.connect(qApp.quit)
-
-        # MenuBar Configuration
-
-
         # Windows Configuration
-        icon_img = ""
         self.setWindowTitle("ICISTS Mail Management")
-        # self.setWindowIcon(QIcon(icon_img))
         self.resize(500, 300)
         self.show()
 
