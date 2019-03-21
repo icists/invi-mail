@@ -5,6 +5,7 @@ from email.mime.text import MIMEText
 import openpyxl
 import sys, os
 import pickle
+import base64
 
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -12,7 +13,7 @@ from google.auth.transport.requests import Request
 
 from parser import * 
 
-DEBUG = True
+DEBUG = False
 
 class Invitation():
     # Initialzie invitation structure form a excel row
@@ -32,13 +33,44 @@ class Invitation():
 
     def is_eng(self):
         return self.lang == '영'
+    
+    def get_summary(self):
+        return QStandardItem(self.name), QStandardItem(self.mail)
+    
+    def send_invi_msg(self, service, user_id='me'):
+        if self.is_eng():
+            template = os.path.dirname(os.path.realpath(__file__)) + '/data/eng.json'
+        else:
+            template = os.path.dirname(os.path.realpath(__file__)) + '/data/kor.json'
+        val = {
+            'name': self.name,
+            'sender': self.sender,
+            'field': self.field,
+            'date': self.date,
+            'one_sen': self.one_sen,
+        }
+        parser = ContentParser(template = template, values = val)
+        
+        subject = parser.get_title()
+        print("To: {:30}\nTitle: {:40}\n".format(str(self), parser.get_title()))
+        # build msg
+        msg_txt = parser.get_content()
+        message = MIMEText(msg_txt, _charset = 'utf-8')
+        message['subject'] = subject
+        message['from'] = user_id
+        message['to'] = self.mail
+
+        raw = base64.urlsafe_b64encode(message.as_bytes())
+        raw = raw.decode()
+        msg_body = {'raw': raw}
+        # send message
+        if not DEBUG:
+            message = (service.users().messages().send(userId=user_id, body=msg_body).execute())
+        else:
+            print("[!] DEBUG Mode, mails are not sent!")
 
     def __str__(self):
         return "{:30} {}".format(self.name, self.mail)
-    
-    def get_summary(self):
-        return self.name, self.mail
-
 
 class MainUI(QWidget):
     def __init__(self):
@@ -203,7 +235,7 @@ class MainUI(QWidget):
     def list_mails(self):
         for invi in self.invitations:
             print(invi)
-            invi_item = QStandardItem(invi.name), QStandardItem(invi.mail)
+            invi_item = invi.get_summary()
             self.mails.appendRow(invi_item)
         self.check_list.setModel(self.mails)
 
@@ -217,33 +249,7 @@ class MainUI(QWidget):
                 self.send_mails(invi, self.service)
 
     def send_mails(self, invi, service, user_id='me'):
-        if invi.is_eng():
-            template = os.path.dirname(os.path.realpath(__file__)) + '/data/eng.json'
-        else:
-            template = os.path.dirname(os.path.realpath(__file__)) + '/data/kor.json'
-        val = {
-            'name': invi.name,
-            'sender': invi.sender,
-            'field': invi.field,
-            'date': invi.date,
-            'one_sen': invi.one_sen,
-        }
-
-        parser = ContentParser(template = template, values = val)
-        subject = parser.get_title()
-        print("To: {:30}\nTitle: {:40}\n".format(str(invi), parser.get_title()))
-        # build msg
-        msg_txt = parser.get_content()
-        message = MIMEText(msg_txt, _charset = 'utf-8')
-        message['subject'] = subject
-        message['from'] = user_id
-        message['to'] = invi.mail
-
-        # send message
-        if not DEBUG:
-            message = (self.service.users().messages().send(userId=user_id, body=message).execute())
-        else:
-            print("[!] DEBUG Mode, mails are not sent!")
+        invi.send_invi_msg(service)
 
 class MainApp(QMainWindow):
 
@@ -267,7 +273,7 @@ class MainApp(QMainWindow):
 
         # Windows Configuration
         self.setWindowTitle("ICISTS Mail Management")
-        self.resize(500, 300)
+        self.resize(800, 600)
         self.show()
 
 if __name__ == "__main__":
