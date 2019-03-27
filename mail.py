@@ -6,6 +6,7 @@ import openpyxl
 import sys, os
 import pickle
 import base64
+from time import sleep
 
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -65,6 +66,8 @@ class Invitation():
         msg_body = {'raw': raw}
         # send message
         if not DEBUG:
+            sleep(2)
+            print(msg_txt)
             message = (service.users().messages().send(userId=user_id, body=msg_body).execute())
         else:
             print("[!] DEBUG Mode, mails are not sent!")

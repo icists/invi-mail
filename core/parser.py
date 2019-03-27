@@ -42,7 +42,10 @@ class ContentParser():
         result = self._title
         for _tk in _vars:
             tk = '{' + _tk + '}'
-            result = result.replace(tk, self._values[_tk])
+            token_value = self._values[_tk]
+            if token_value == None:
+                token_value == ""
+            result = result.replace(tk, token_value)
         return result
 
     def get_content(self):
@@ -81,7 +84,8 @@ class ContentParser():
             _line = line
             for _tk in _vars:
                 tk = '{' + _tk + '}'
-                _line = _line.replace(tk, self._values[_tk])
+                token_value = self._values[_tk]
+                _line = _line.replace(tk, token_value)
             self._content.append(_line)
     
     def test(self):
