@@ -2,8 +2,10 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from email.mime.text import MIMEText
+
 import openpyxl
-import sys, os
+import sys
+import os
 import pickle
 import base64
 from time import sleep
@@ -12,15 +14,16 @@ from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 
-from parser import * 
+from core.parser import ContentParser
 
-DEBUG = False
+DEBUG = True
+
 
 class Invitation():
     # Initialzie invitation structure form a excel row
     def __init__(self, row):
         LANG, MAIL, NAME, SENDER, FIELD, ONE_SEN, DATE, DESC, DONE, ETC = \
-                tuple(number for number in range(10))
+            tuple(number for number in range(10))
         self.lang = row[LANG].value
         self.mail = row[MAIL].value
         self.name = row[NAME].value
@@ -34,10 +37,10 @@ class Invitation():
 
     def is_eng(self):
         return self.lang == '영'
-    
+
     def get_summary(self):
         return QStandardItem(self.name), QStandardItem(self.mail)
-    
+
     def send_invi_msg(self, service, user_id='me'):
         if self.is_eng():
             template = os.path.dirname(os.path.realpath(__file__)) + '/data/eng.json'
@@ -51,7 +54,7 @@ class Invitation():
             'one_sen': self.one_sen,
         }
         parser = ContentParser(template = template, values = val)
-        
+
         subject = parser.get_title()
         print("To: {:30}\nTitle: {:40}\n".format(str(self), parser.get_title()))
         # build msg
@@ -75,6 +78,7 @@ class Invitation():
     def __str__(self):
         return "{:30} {}".format(self.name, self.mail)
 
+
 class MainUI(QWidget):
     def __init__(self):
         super().__init__()
@@ -91,7 +95,7 @@ class MainUI(QWidget):
         self.mails = QStandardItemModel()
         self.mails.setHorizontalHeaderItem(0, QStandardItem('Name'))
         self.mails.setHorizontalHeaderItem(1, QStandardItem('Email Address'))
-        
+
         # Box UI Structrue For Mail List
         box = QHBoxLayout()
         self.setLayout(box)
@@ -127,8 +131,9 @@ class MainUI(QWidget):
         check_label = QLabel('Check if the mails are formed well', self)
         grid.addWidget(check_label, 2, 1)
 
-        self.check_list = QTableView(self)
-        box.addWidget(self.check_list)
+        self.check_table = QTableView(self)
+        self.check_table.doubleClicked.connect(self.show_email)
+        box.addWidget(self.check_table)
 
         send_btn = QPushButton('Send', self)
         send_btn.resize(send_btn.sizeHint())
@@ -164,13 +169,14 @@ class MainUI(QWidget):
             if self.creds and self.creds.expired and self.creds.refresh_token:
                 self.creds.refresh(Request())
             else:
-                credential = os.path.dirname(os.path.realpath(__file__)) + '/data/credentials.json'
+                credential = os.path.dirname(os.path.realpath(__file__)) + \
+                    '/data/credentials.json'
                 try:
                     flow = InstalledAppFlow.from_client_secrets_file(
                             credential, SCOPES)
                 except FileNotFoundError as err:
                     err_box = QMessageBox.question(self, 'Error', "credentials.json not found",
-                            QMessageBox.Yes, QMessageBox.Yes)
+                        QMessageBox.Yes, QMessageBox.Yes)
                     self.login_label.setText('Failed to log in to Gmail')
                     print("[!] Credentials Not Found at /data")
                     return
@@ -186,7 +192,6 @@ class MainUI(QWidget):
         self.login_btn.setText("Reset")
         self.is_logged_in = True
         print("[*] Logged in to Gmail: {}".format(self.user_email))
-    
 
     def file_upload(self):
         filename = QFileDialog.getOpenFileName(self, 'Open file', './')
@@ -205,7 +210,7 @@ class MainUI(QWidget):
 
         ignore_threshold = 3
         for i, row in enumerate(sheet.iter_rows()):
-            if header == True:
+            if header:
                 if i == 0:
                     continue
             # Too many nones... ignore them!
@@ -222,11 +227,10 @@ class MainUI(QWidget):
             if none_cnt > ignore_threshold:
                 break
             if is_valid_row:
-                 self.invitations.append(Invitation(row))
+                self.invitations.append(Invitation(row))
             if none_cnt >= ignore_threshold:
                 for _ in range(ignore_threshold):
                     self.invitations.pop()
-        
 
     def is_valid_xlsx(self, filename):
         if not filename.endswith('.xlsx'):
@@ -240,10 +244,12 @@ class MainUI(QWidget):
             print(invi)
             invi_item = invi.get_summary()
             self.mails.appendRow(invi_item)
-        self.check_list.setModel(self.mails)
+        self.check_table.setModel(self.mails)
 
     def ask_send(self):
-        ask = QMessageBox.question(self, 'Message', "Are you sure to send mails?",
+        ask = QMessageBox.question(self,
+                'Message',
+                "Are you sure to send mails?",
                 QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if DEBUG:
             print("[*] DEBUG mode is on")
@@ -253,6 +259,10 @@ class MainUI(QWidget):
 
     def send_mails(self, invi, service, user_id='me'):
         invi.send_invi_msg(service)
+
+    def show_email(self):
+        for idx in self.check_table.selectionModel().selectedIndexes():
+            print(idx.row(), idx.column())
 
 class MainApp(QMainWindow):
 
