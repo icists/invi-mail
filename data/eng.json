@@ -1,5 +1,5 @@
 {
-    "title" : "[{field}] {name} Speech Invitation",
+    "title" : "[{field}] Speech Invitation",
     "template" : [
         "Dear {name},",
         "This is {sender} and I organize a conference about {field} at KAIST. The conference’s goal is to discuss how science and technology influence society and cooperate with various fields.",
