@@ -26,7 +26,7 @@ class ContentParser():
         self.LTOKEN = '{'
         self.RTOKEN = '}'
 
-        _file = open(template, 'r')
+        _file = open(template, 'r', encoding = 'utf-8')
         _file = json.load(_file)
         self._title = _file['title']
         self._template = _file['template']
@@ -77,7 +77,6 @@ class ContentParser():
         """
         self._content = []
         _vars = self._values.keys()
-
         # Put value each line
         for line in self._template:
             # Iterate for every tokens
@@ -90,7 +89,6 @@ class ContentParser():
     
     def test(self):
         return "This is a test message"
-
 
 # For testing.
 if __name__ == "__main__":

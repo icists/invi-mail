@@ -41,17 +41,43 @@ class Invitation():
     def get_summary(self):
         return QStandardItem(self.name), QStandardItem(self.mail)
 
+    def test(self):
+        return "This is a test message"
+
+    def batchim(self, name):
+        last_char = list(name).pop()
+        chk = (ord(last_char) - 44032) % 28
+        if chk:
+            return 1
+        else:
+            return 0
+    
+    def useyi(self, chk):
+        if chk:
+            return '이'
+        else:
+            return ''
+
+    def useleul(self, chk):
+        if chk:
+            return '을'
+        else:
+            return '를'
+    
     def send_invi_msg(self, service, user_id='me'):
         if self.is_eng():
             template = os.path.dirname(os.path.realpath(__file__)) + '/data/eng.json'
         else:
             template = os.path.dirname(os.path.realpath(__file__)) + '/data/kor.json'
+        
         val = {
             'name': self.name,
             'sender': self.sender,
             'field': self.field,
             'date': self.date,
             'one_sen': self.one_sen,
+            'leul': self.useleul(self.batchim(self.name)),
+            'yi': self.useyi(self.batchim(self.sender))
         }
         parser = ContentParser(template = template, values = val)
 
