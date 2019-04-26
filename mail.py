@@ -22,8 +22,7 @@ DEBUG = True
 class Invitation():
     # Initialzie invitation structure form a excel row
     def __init__(self, row):
-        LANG, MAIL, NAME, SENDER, FIELD, ONE_SEN, DATE, DESC, DONE, ETC = \
-            tuple(number for number in range(10))
+        LANG, MAIL, NAME, SENDER, FIELD, ONE_SEN, DATE, DESC, DONE, ETC = range(10)
         self.lang = row[LANG].value
         self.mail = row[MAIL].value
         self.name = row[NAME].value
@@ -52,13 +51,13 @@ class Invitation():
         else:
             return 0
     
-    def useyi(self, chk):
+    def use_yi(self, chk):
         if chk:
             return '이'
         else:
             return ''
 
-    def useleul(self, chk):
+    def use_leul(self, chk):
         if chk:
             return '을'
         else:
@@ -76,8 +75,8 @@ class Invitation():
             'field': self.field,
             'date': self.date,
             'one_sen': self.one_sen,
-            'leul': self.useleul(self.batchim(self.name)),
-            'yi': self.useyi(self.batchim(self.sender))
+            'leul': self.use_leul(self.batchim(self.name)),
+            'yi': self.use_yi(self.batchim(self.sender))
         }
         parser = ContentParser(template = template, values = val)
 
@@ -232,7 +231,6 @@ class MainUI(QWidget):
 
     # Need Improvement
     def parse_excel_sheet(self, sheet, header=True):
-        self.inviations = []
 
         ignore_threshold = 3
         for i, row in enumerate(sheet.iter_rows()):
@@ -241,22 +239,13 @@ class MainUI(QWidget):
                     continue
             # Too many nones... ignore them!
             is_valid_row = True
-            none_cnt = 0
-            for cell in row:
-                if cell.value == None:
-                    none_cnt += 1
+            for i in range(7):
+                if row[i].value == None:
                     is_valid_row = False
                     break
-                else:
-                    none_cnt = 0
-                    break
-            if none_cnt > ignore_threshold:
-                break
             if is_valid_row:
                 self.invitations.append(Invitation(row))
-            if none_cnt >= ignore_threshold:
-                for _ in range(ignore_threshold):
-                    self.invitations.pop()
+            
 
     def is_valid_xlsx(self, filename):
         if not filename.endswith('.xlsx'):
