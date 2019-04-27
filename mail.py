@@ -231,19 +231,17 @@ class MainUI(QWidget):
 
     # Need Improvement
     def parse_excel_sheet(self, sheet, header=True):
-
-        ignore_threshold = 3
         for i, row in enumerate(sheet.iter_rows()):
             if header:
                 if i == 0:
                     continue
             # Too many nones... ignore them!
             is_valid_row = True
-            for i in range(7):
-                if row[i].value == None:
+            for cell in row[:7]:
+                if cell.value == None:
                     is_valid_row = False
                     break
-            if is_valid_row:
+            if is_valid_row and not Invitation(row).done:
                 self.invitations.append(Invitation(row))
             
 
@@ -269,8 +267,9 @@ class MainUI(QWidget):
         if DEBUG:
             print("[*] DEBUG mode is on")
         if ask == QMessageBox.Yes:
-            for invi in self.invitations:
+            for i, invi in enumerate(self.invitations, 1):
                 self.send_mails(invi, self.service)
+                ex.statusBar().showMessage(str(i)+'/'+str(len(self.invitations)))
 
     def send_mails(self, invi, service, user_id='me'):
         invi.send_invi_msg(service)
